@@ -1,15 +1,17 @@
 import UIKit
+import CoreData // but I didn't need this apparently
 
 class TodoListViewController: UITableViewController {
     
     var itemArray = [Item]()
-    let dataFilePath = FileManager.default.urls(for:.documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
+    
+    let context = (UIApplication.shared.delegate as!AppDelegate).persistentContainer.viewContext
     
     //let defaults = UserDefaults.standard
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+        print(FileManager.default.urls(for:.documentDirectory, in: .userDomainMask))
         loadItems()
     }
     
@@ -34,15 +36,21 @@ class TodoListViewController: UITableViewController {
     //MARK: - TableView Delegate Methods
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        print (itemArray[indexPath.row])
         
-        itemArray[indexPath.row].done = !itemArray[indexPath.row].done // reversing what it is
-        saveItems()
-        tableView.reloadRows(at: [indexPath], with: .automatic) // this is so that the animate would work
+//        itemArray[indexPath.row].setValue("Completed", forKey: "title") // change it to Completed everytime you tap on it to be done // this could be also a way to udpate in CRUD
+        
+//        // how to remove item from core data , remember that first it has to be deleted from context, then removed from table.
+//        context.delete(itemArray[indexPath.row])
+//        itemArray.remove(at: indexPath.row)
+        
+        
+        itemArray[indexPath.row].done = !itemArray[indexPath.row].done // reversing what it is // updating in CRUD
+        saveItems() // this is used in create, update and deleting items from persistence container
+//        tableView.reloadRows(at: [indexPath], with: .automatic) // this is so that the animate would work
         tableView.deselectRow(at: indexPath, animated: true)
         
     }
-    
+    //MARK: - Add new items
     @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
         var textField = UITextField()
         
@@ -50,8 +58,11 @@ class TodoListViewController: UITableViewController {
         
         let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
             // what will happen once the user clicks the Add Item button on our UIAlert
-            let newItem = Item()
+            
+            
+            let newItem = Item(context: self.context)
             newItem.title = textField.text!
+            newItem.done = false // we have to set someting for done, because it's not an optional and needs a value
             self.itemArray.append(newItem)
             self.saveItems()
         }
@@ -67,28 +78,23 @@ class TodoListViewController: UITableViewController {
     
     //MARK: - Model Manupulation Methods
     func saveItems () {
-        let encoder = PropertyListEncoder()
+        
         do {
-            let data = try encoder.encode(itemArray)
-            try data.write(to: dataFilePath!)
+            try context.save()
         } catch {
-            print("Error encoding item array, \(error)")
-            
+            print ("Error saving context \(error)")
         }
+        
         tableView.reloadData()
         
     }
     
     func loadItems() {
-        if let data = try? Data(contentsOf: dataFilePath!) {
-            let decoder = PropertyListDecoder()
-            do {
-            itemArray = try decoder.decode([Item].self, from: data)  // you have to explicitlt define the data type
-            } catch {
-            print("Error decoding itemArray \(error)")
-            }
-            
+        let request: NSFetchRequest<Item> = Item.fetchRequest() // you have to specify the type which is NSFetchRequesto
+        do {
+            itemArray = try context.fetch(request)
+        } catch {
+            print ("Error fetching data frim context \(error)")
         }
     }
-    
 }
