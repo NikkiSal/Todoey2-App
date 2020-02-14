@@ -1,10 +1,3 @@
-//
-//  AppDelegate.swift
-//  Todoey2
-//
-//  Created by Marzieh on 2020-02-12.
-//  Copyright © 2020 Myph. All rights reserved.
-//
 
 import UIKit
 import CoreData

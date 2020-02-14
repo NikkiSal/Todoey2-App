@@ -11,11 +11,13 @@ class TodoListViewController: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        //searchBar.delegate = self you can either do this for the searchBar outlet or do it on the UI
         print(FileManager.default.urls(for:.documentDirectory, in: .userDomainMask))
         loadItems()
     }
     
     //MARK: - TableView Datasource Methods
+    
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return itemArray.count
     }
@@ -89,12 +91,37 @@ class TodoListViewController: UITableViewController {
         
     }
     
-    func loadItems() {
-        let request: NSFetchRequest<Item> = Item.fetchRequest() // you have to specify the type which is NSFetchRequesto
+    func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest()) {
+     //   let request: NSFetchRequest<Item> = Item.fetchRequest() // you have to specify the type which is NSFetchRequesto
         do {
             itemArray = try context.fetch(request)
         } catch {
             print ("Error fetching data frim context \(error)")
+        }
+        tableView.reloadData()
+    }
+}
+
+//MARK: - Search Bar methods
+extension TodoListViewController: UISearchBarDelegate {
+    
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        let request: NSFetchRequest<Item> = Item.fetchRequest()
+        //make the quary structure and add our query to the predicate. [cd] means that is not case and dialetic sensitive
+        request.predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
+        
+        // sort the data we get back from the database by any order of our choice and add the sort descriptor to our request
+        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+        loadItems(with: request)
+    }
+    
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if searchBar.text?.count == 0 {
+            loadItems()
+            DispatchQueue.main.async { // this is to run this method on the main thread
+                searchBar.resignFirstResponder() // to dismiss keyboard
+            }
+            
         }
     }
 }
